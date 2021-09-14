@@ -1,0 +1,19 @@
+{   
+        "event-type": "match",
+        "time": 200,
+        "user-a": "usertest",
+        "user-b": "usertest2",   
+        "user-a-postmatch-info": {
+                "coin-balance-after-match": 200,
+                "level-after-match": 100,
+                "device": "Playstation",
+                "platform": "XYZ"
+            },
+        "user-b-postmatch-info": {"coin-balance-after-match": 250,
+                "level-after-match": 300,
+                "device": "Playstation",
+                "platform": "XYZ"},
+        "winner": "usertest",
+        "game-tier": 4,
+        "duration": 50
+}
