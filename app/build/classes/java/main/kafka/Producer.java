@@ -16,6 +16,12 @@ public class Producer implements Runnable {
     private final KafkaProducer<String, Event> producer;
     private String topic;
 
+    public Producer(String topic) {
+        Properties prop = createProducerConfig();
+        this.producer = new KafkaProducer<String, Event>(prop, new StringSerializer(),
+                new KafkaJsonSerializer());
+        this.topic = topic;
+    }
     public Producer() {
         Properties prop = createProducerConfig();
         this.producer = new KafkaProducer<String, Event>(prop, new StringSerializer(),
@@ -59,7 +65,7 @@ public class Producer implements Runnable {
             Event event;
             Random rand = new Random();
             if(rand.nextInt() % 2 == 0) {
-                event = createEventInApp();
+               event = createEventInApp();
             } else {
                 event = createEventInit();
             }

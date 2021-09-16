@@ -1,15 +1,18 @@
 package kafka;
 
+import events.Event;
+import events.EventTransformation;
+import events.InApp;
+import events.Init;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.*;
+import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Locale;
 import java.util.Properties;
 
 public class Streams {
@@ -32,33 +35,55 @@ public class Streams {
         Properties properties = new Properties();
         properties.put(StreamsConfig.APPLICATION_ID_CONFIG, appIdConfig);
         properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVER);
-        //properties.put(StreamsConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        properties.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.Integer().getClass());
-        properties.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         return properties;
     }
-    public KStream<String, String> openInputStream(StreamsBuilder streamsBuilder, String inputTopic) {
-        KStream<String, String> kstream = streamsBuilder.stream(inputTopic);
-        return kstream;
+    public KStream<String, Event> openInputStream(StreamsBuilder streamsBuilder, String inputTopic) {
+        return streamsBuilder.stream(inputTopic, Consumed.with(Serdes.String(), CustomSerdes.InApp()));
     }
 
-    public void doTransform(KStream<String, String> inputStream, String outputTopic) {
+    public Event convertUpperCase(Event event) {
+        if(event.getEventType().toString().equals("init")) {
+            Init init = (Init) event;
+            init.setCountry(init.getCountry().toUpperCase());
+            init.setEventType(event.getEventType());
+            return init;
+        }
+        else {
+            InApp inApp = (InApp) event;
+            inApp.setUserId(inApp.getUserId().toUpperCase());
+            inApp.setEventType(event.getEventType());
+            return inApp;
+        }
+
+    }
+    public void doTransform(KStream<String, Event> inputStream, String outputTopic) {
             //map values to upper case
-            KStream<String, String> upperStream = inputStream.mapValues(v -> v.toUpperCase());
-            upperStream.through(outputTopic, Produced.with(Serdes.String(), Serdes.String()));
+            System.out.println(">>>do transform");
+            System.out.println("input stream" + inputStream.toString());
+            KStream<String, Event> upperStream = inputStream.map((key, value) -> new KeyValue<>(key, convertUpperCase(value)));
+            upperStream.through(outputTopic, Produced.with(Serdes.String(), CustomSerdes.InApp()));
     }
 
     public void doStream(String inputTopic) {
+        System.out.println(">>>> do stream");
         StreamsBuilder streamsBuilder = new StreamsBuilder();
-        KStream<String, String> inputStream = openInputStream(streamsBuilder, this.inputTopic);
+        KStream<String, Event> inputStream = openInputStream(streamsBuilder, this.inputTopic);
         doTransform(inputStream, this.outputTopic);
         Topology topology = streamsBuilder.build();
 
-        KafkaStreams streams = new KafkaStreams(topology, properties);
+        KafkaStreams streams = new KafkaStreams(topology, this.properties);
+        System.out.println(">>> start streams");
         streams.start();
 
+        terminate(streams);
 
-        // Make sure everything terminates cleanly when process is killed
+
+    }
+
+    /**
+     * Make sure everything terminates cleanly when process is killed
+     */
+    public void terminate(KafkaStreams streams) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             logger.info("shutting down");
             streams.close();
