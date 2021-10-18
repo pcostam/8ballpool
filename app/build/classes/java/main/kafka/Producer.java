@@ -1,8 +1,6 @@
 package kafka;
 
-import events.Event;
-import events.InApp;
-import events.Init;
+import events.*;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
@@ -48,6 +46,9 @@ public class Producer implements Runnable {
     public InApp createEventInApp() {
         InApp event = new InApp();
         event.setUserId("acmana");
+        event.setProductId("productid");
+        event.setPurchaseValue(20.0);
+        event.setTime(100);
         event.setEventType(event.getEventType().IN_APP_PURCHASE);
         return event;
     }
@@ -55,19 +56,41 @@ public class Producer implements Runnable {
     public Init createEventInit() {
         Init event = new Init();
         event.setCountry("Portugal");
+        event.setPlatform("Playstation");
+        event.setTime(100);
+        event.setUserId("jkgamer98");
         event.setEventType(event.getEventType().INIT);
         return event;
+    }
+
+    public Match createEventMatch() {
+        Match match = new Match();
+        match.setDuration(100);
+        match.setGameTier(200);
+        match.setUserA("userA");
+        match.setUserB("userB");
+        UserBPostmatchInfo userB = new UserBPostmatchInfo();
+        userB.setDevice("psp");
+        match.setUserBPostmatchInfo(userB);
+        UserAPostmatchInfo userA = new UserAPostmatchInfo();
+        userA.setDevice("psp");
+        match.setUserAPostmatchInfo(userA);
+        match.setEventType(match.getEventType().MATCH);
+        return match;
     }
     @Override
     public void run() {
         final Logger logger = LoggerFactory.getLogger(Producer.class);
-        for(int i = 0; i < 5 ; ++i) {
+        for(int i = 0; i < 20 ; ++i) {
             Event event;
-            Random rand = new Random();
-            if(rand.nextInt() % 2 == 0) {
+            Double nextDouble = Math.random();
+            if(nextDouble < 0.45 ) {
                event = createEventInApp();
-            } else {
+            } else if(nextDouble >= 0.45 && nextDouble < 0.65) {
                 event = createEventInit();
+            }
+            else {
+                event = createEventMatch();
             }
 
             //Create the producer record
