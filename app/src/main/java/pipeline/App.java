@@ -3,15 +3,20 @@
  */
 package pipeline;
 
-import mongodb.BulkWriteInsert;
-import mongodb.MongoDBSetup;
-
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+
 
 public class App {
 
-    public static void main(String[] args) throws IOException {
-        MongoDBSetup setupMongo = new MongoDBSetup();
-        BulkWriteInsert.doBulkInsert(setupMongo.getCollection());
+    public static void main(String[] args) throws IOException, ExecutionException, InterruptedException {
+        String topicName = "8sample-topic";
+        int numberOfThread = 3;
+        String groupId = "java-group-consumer";
+        String outputTopic = "output-topic";
+
+        MongoDBComponent.doMongoDBComponent(topicName);
+        //KafkaComponent.doKafkaComponent(topicName, groupId, numberOfThread);
+        KafkaStreamsComponent.doKafkaStreamsComponent(outputTopic, topicName, groupId, numberOfThread);
     }
 }
